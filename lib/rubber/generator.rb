@@ -66,7 +66,7 @@ module Rubber
                 super
               end
             end
-            alias ` system
+            alias ` system      #`
             alias exec system
             alias fork system
           end
