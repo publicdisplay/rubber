@@ -9,36 +9,7 @@ require 'time'
 
 namespace :rubber do
 
-  desc "Generate system config files by transforming the files in the config tree"
-  task :config do
-    require 'rubber/configuration'
-    cfg = Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
-    instance_alias = cfg.environment.current_host
-    instance = cfg.instance[instance_alias]
-    if instance
-      roles = instance.role_names
-      env = cfg.environment.bind(roles, instance_alias)
-      gen = Rubber::Configuration::Generator.new("#{RAILS_ROOT}/config/rubber", roles, instance_alias)
-    elsif RAILS_ENV == 'development'
-      roles = cfg.environment.known_roles
-      role_items = roles.collect do |r|
-        Rubber::Configuration::RoleItem.new(r, r == "db" ? {'primary' => true} : {})
-      end
-      env = cfg.environment.bind(roles, instance_alias)
-      domain = env.domain
-      instance = Rubber::Configuration::InstanceItem.new(instance_alias, domain, role_items, 'dummyid')
-      instance.external_host = instance.full_name
-      instance.external_ip = "127.0.0.1"
-      instance.internal_host = instance.full_name
-      instance.internal_ip = "127.0.0.1"
-      cfg.instance.add(instance)
-      gen = Rubber::Configuration::Generator.new("#{RAILS_ROOT}/config/rubber", roles, instance_alias)
-      gen.fake_root ="#{RAILS_ROOT}/tmp/rubber"
-    else
-      puts "Instance not found for host: #{instance_alias}"
-      exit 1
-    end
-
+  def run_helper(gen, env)
     if ENV['NO_POST']
       gen.no_post = true
     end
@@ -50,7 +21,49 @@ namespace :rubber do
     end
     gen.stop_on_error_cmd = env.stop_on_error_cmd
     gen.run
+  end
 
+  desc "Generate system config files by transforming the files in the config tree"
+  task :config do
+    require 'rubber/configuration'
+    cfg = Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
+    instance_alias = cfg.environment.current_host
+    instance = cfg.instance[instance_alias]
+    if instance
+      roles = instance.role_names
+      env = cfg.environment.bind(roles, instance_alias)
+      gen = Rubber::Configuration::Generator.new("#{RAILS_ROOT}/config/rubber", roles, instance_alias)
+    else
+      puts "Instance not found for host: #{instance_alias}"
+      exit 1
+    end
+    run_helper(gen, env)
+  end
+
+  desc <<-DESC
+    Generate system config files by transforming the files in the config tree
+    but put the results into tmp/rubber for inspection.  (Useful for testing.)
+  DESC
+  task :config_test do
+    require 'rubber/configuration'
+    cfg = Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
+    instance_alias = cfg.environment.current_host
+
+    roles = cfg.environment.known_roles
+    role_items = roles.collect do |r|
+      Rubber::Configuration::RoleItem.new(r, r == "db" ? {'primary' => true} : {})
+    end
+    env = cfg.environment.bind(roles, instance_alias)
+    domain = env.domain
+    instance = Rubber::Configuration::InstanceItem.new(instance_alias, domain, role_items, 'dummyid')
+    instance.external_host = instance.full_name
+    instance.external_ip = "127.0.0.1"
+    instance.internal_host = instance.full_name
+    instance.internal_ip = "127.0.0.1"
+    cfg.instance.add(instance)
+    gen = Rubber::Configuration::Generator.new("#{RAILS_ROOT}/config/rubber", roles, instance_alias)
+    gen.fake_root ="#{RAILS_ROOT}/tmp/rubber"
+    run_helper(gen, env)
   end
 
   desc <<-DESC
