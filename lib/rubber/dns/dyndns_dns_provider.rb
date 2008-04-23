@@ -8,7 +8,7 @@ class DyndnsDnsProvider < DynamicDnsBase
   end
 
   def nameserver
-    "ns1.mydyndns.org"
+    "ns1.dyndns.org"
   end
 
   def host_exists?(host)
