@@ -18,6 +18,7 @@ class DyndnsDnsProvider < DynamicDnsBase
         dns.getresource(hostname(host), Resolv::DNS::Resource::IN::A)
       end
     rescue
+      puts $!
       raise "Domain needs to exist in dyndns as an A record before record can be updated"
     end
     return true
