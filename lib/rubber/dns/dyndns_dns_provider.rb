@@ -16,7 +16,8 @@ class DyndnsDnsProvider < DynamicDnsBase
       Resolv::DNS.open(:nameserver => [nameserver], :search => [], :ndots => 1) do |dns|
         dns.getresource(hostname(host), Resolv::DNS::Resource::IN::A)
       end
-    rescue
+    rescue StandardError => e
+      puts e
       raise "Domain needs to exist in dyndns as an A record before record can be updated"
     end
     return true
