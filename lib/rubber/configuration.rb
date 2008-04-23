@@ -27,7 +27,7 @@ module Rubber
       cfg = Rubber::Configuration.get_configuration(RAILS_ENV)
       host = cfg.environment.current_host
       roles = cfg.instance[host].role_names rescue nil
-      return cfg.environment.bind(roles, host)
+      cfg.environment.bind(roles, host)
     end
 
     class ConfigHolder
