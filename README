@@ -113,7 +113,7 @@ scripts in config/deploy-MODULE.yml contain MODULE specific (mongrel, nginx,
 etc) scripts for deploying those pieces of your setup.
 
 To test that your transformations all work before deploying, you can run
-"rake rubber:config" in a development env.  This will transform all your
+"rake rubber:config_test" in a development env.  This will transform all your
 rubber config files into RAILS_ROOT/tmp/rubber as if it were "/" on your 
 remote servers.
 
