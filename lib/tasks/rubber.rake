@@ -54,13 +54,17 @@ namespace :rubber do
       Rubber::Configuration::RoleItem.new(r, r == "db" ? {'primary' => true} : {})
     end
     env = cfg.environment.bind(roles, instance_alias)
-    domain = env.domain
-    instance = Rubber::Configuration::InstanceItem.new(instance_alias, domain, role_items, 'dummyid')
-    instance.external_host = instance.full_name
-    instance.external_ip = "127.0.0.1"
-    instance.internal_host = instance.full_name
-    instance.internal_ip = "127.0.0.1"
-    cfg.instance.add(instance)
+    # If there are no instances configured, create a dummy instance so that
+    # we can see examples in the generated files
+    if cfg.instance.size == 0
+      domain = env.domain
+      instance = Rubber::Configuration::InstanceItem.new(instance_alias, domain, role_items, 'dummyid')
+      instance.external_host = instance.full_name
+      instance.external_ip = "127.0.0.1"
+      instance.internal_host = instance.full_name
+      instance.internal_ip = "127.0.0.1"
+      cfg.instance.add(instance)
+    end
     gen = Rubber::Configuration::Generator.new("#{RAILS_ROOT}/config/rubber", roles, instance_alias)
     gen.fake_root ="#{RAILS_ROOT}/tmp/rubber"
     run_helper(gen, env)
