@@ -61,6 +61,16 @@ namespace :rubber do
   task :post_stop do
   end
 
+  def rubber_env
+    ENV['RUBBER_ENV'] || ENV['RAILS_ENV']
+  end
+
+  desc <<-DESC
+    Initialize rubber's dynamic roles.  This task is executed automatically
+    when rubber is loaded.  If either ENV['RUBBER_ENV'] or
+    ENV['RAILS_ENV'] is set, it will be used to establish rubber's execution
+    context.
+  DESC
   required_task :init do
     # pull in basic rails env.  rubber only needs RAILS_ROOT and RAILS_ENV.
     # We actually do NOT want the entire rails environment because it
@@ -79,8 +89,8 @@ namespace :rubber do
     if Capistrano::Version::MAJOR < 2 || Capistrano::Version::MINOR < 4
       fatal "rubber requires capistrano 2.4.0 or greater"
     end
-    
-    set :rubber_cfg, Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
+     
+    set :rubber_cfg, Rubber::Configuration.get_configuration(rubber_env)
     load_roles() unless rubber_cfg.environment.bind().disable_auto_roles
     # NOTE: for some reason Capistrano requires you to have both the public and
     # the private key in the same folder, the public key should have the
@@ -212,7 +222,7 @@ namespace :rubber do
 
     # Generate /etc/hosts contents for the local machine from instance config
     env = rubber_cfg.environment.bind()
-    delim = "## rubber config #{env.domain} #{ENV['RAILS_ENV']}"
+    delim = "## rubber config #{env.domain} #{rubber_env}"
     local_hosts = delim + "\n"
     rubber_cfg.instance.each do |ic|
       # don't add unqualified hostname in local hosts file since user may be
@@ -249,7 +259,8 @@ namespace :rubber do
 
     # Generate /etc/hosts contents for the remote( ec2) instance from instance config
     delim = "## rubber config"
-    delim = "#{delim} #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
+    env = rubber_env
+    delim = "#{delim} #{env}" if env
     remote_hosts = delim + "\n"
     rubber_cfg.instance.each do |ic|
       next unless ic.internal_ip
@@ -561,19 +572,25 @@ namespace :rubber do
     sudo "/etc/init.d/sysklogd restart"
   end
 
-  desc <<-DESC
-    Configures the deployed rails application by running the rubber configuration process
-  DESC
-  task :config do
+  def get_env_options
     opts = {}
     opts['NO_POST'] = true if ENV['NO_POST']
     opts['FILE'] = ENV['FILE'] if ENV['FILE']
     opts['RAILS_ENV'] = ENV['RAILS_ENV'] if ENV['RAILS_ENV']
+    opts['RUBBER_ENV'] = ENV['RUBBER_ENV'] if ENV['RUBBER_ENV']
 
     # when running deploy:migrations, we need to run config against release_path
     opts[:deploy_path] = current_release if fetch(:migrate_target, :current).to_sym == :latest
      
     run_config(opts)
+    opts
+  end
+
+  desc <<-DESC
+    Configures the deployed rails application by running the rubber configuration process
+  DESC
+  task :config do
+    run_config(get_env_options)
   end
 
   set :mnt_vol, "/mnt"
@@ -901,7 +918,7 @@ namespace :rubber do
     
     env = rubber_cfg.environment.bind(instance_item.role_names, instance_item.name)
 
-    value = Capistrano::CLI.ui.ask("About to DESTROY #{instance_alias} (#{instance_item.instance_id}) in mode #{ENV['RAILS_ENV']}.  Are you SURE [yes/NO]?: ")
+    value = Capistrano::CLI.ui.ask("About to DESTROY #{instance_alias} (#{instance_item.instance_id}) in mode #{rubber_env}.  Are you SURE [yes/NO]?: ")
     fatal("Exiting", 0) if value != "yes"
     
     if env.use_static_ip && instance_item.static_ip
