@@ -17,14 +17,18 @@ module Rubber
 
     @@configurations = {}
 
-    def self.get_configuration(env=nil, root=nil)
+    def self.get_configuration(env=get_rubber_env, root=nil)
       key = "#{env}-#{root}"
       @@configurations[key] ||= ConfigHolder.new(env, root)
     end
 
+    def self.get_rubber_env
+      (defined?(RUBBER_ENV) && RUBBER_ENV) || ENV['RUBBER_ENV'] ||
+        (defined?(RAILS_ENV) && RAILS_ENV) || ENV['RAILS_ENV'] || 'development'
+    end
+
     def self.get_env()
-      raise "This convenience method needs RAILS_ENV to be set" unless RAILS_ENV
-      cfg = Rubber::Configuration.get_configuration(RAILS_ENV)
+      cfg = Rubber::Configuration.get_configuration(get_rubber_env)
       host = cfg.environment.current_host
       roles = cfg.instance[host].role_names rescue nil
       cfg.environment.bind(roles, host)

@@ -175,7 +175,7 @@ module Rubber
       end
 
       def rubber_instances
-        Rubber::Configuration.get_configuration(RAILS_ENV).instance
+        Rubber::Configuration.get_configuration.instance
       end
 
       def rubber_env

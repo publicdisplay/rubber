@@ -26,7 +26,7 @@ namespace :rubber do
   desc "Generate system config files by transforming the files in the config tree"
   task :config do
     require 'rubber/configuration'
-    cfg = Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
+    cfg = Rubber::Configuration.get_configuration
     instance_alias = cfg.environment.current_host
     instance = cfg.instance[instance_alias]
     if instance
@@ -46,7 +46,7 @@ namespace :rubber do
   DESC
   task :config_test do
     require 'rubber/configuration'
-    cfg = Rubber::Configuration.get_configuration(ENV['RAILS_ENV'])
+    cfg = Rubber::Configuration.get_configuration
     instance_alias = cfg.environment.current_host
 
     roles = cfg.environment.known_roles
