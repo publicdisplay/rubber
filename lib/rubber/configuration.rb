@@ -17,22 +17,25 @@ module Rubber
 
     @@configurations = {}
 
-    def self.get_configuration(env=nil, root=nil)
+    def self.get_configuration(env=get_rubber_env_var, root=nil)
       key = "#{env}-#{root}"
       @@configurations[key] ||= ConfigHolder.new(env, root)
     end
 
-    def self.rubber_env
-      raise "This convenience method needs RAILS_ENV to be set" unless RAILS_ENV
-      cfg = Rubber::Configuration.get_configuration(RAILS_ENV)
+    def self.get_rubber_env_var
+      (defined?(RUBBER_ENV) && RUBBER_ENV) || ENV['RUBBER_ENV'] ||
+        (defined?(RAILS_ENV) && RAILS_ENV) || ENV['RAILS_ENV'] || 'development'
+    end
+
+    def self.rubber_env()
+      cfg = Rubber::Configuration.get_configuration(get_rubber_env_var)
       host = cfg.environment.current_host
       roles = cfg.instance[host].role_names rescue nil
       cfg.environment.bind(roles, host)
     end
 
     def self.rubber_instances
-      raise "This convenience method needs RAILS_ENV to be set" unless RAILS_ENV
-      Rubber::Configuration.get_configuration(RAILS_ENV).instance
+      Rubber::Configuration.get_configuration(get_rubber_env_var).instance
     end
 
     def self.init_s3(env)
