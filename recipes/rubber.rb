@@ -229,7 +229,9 @@ namespace :rubber do
     remote_hosts = delim + "\n"
     rubber_cfg.instance.each do |ic|
       next unless ic.internal_ip
-      hosts_data = [ic.name, ic.full_name, ic.external_host, ic.internal_host].join(' ')
+      # put the fully qualified hostname first, for programs that call
+      # gethostname(2), like squid and sendmail
+      hosts_data = [ic.full_name, ic.name, ic.external_host, ic.internal_host].join(' ')
       remote_hosts << ic.internal_ip << ' ' << hosts_data << "\n"
     end
     remote_hosts << delim << "\n"
