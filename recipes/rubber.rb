@@ -544,9 +544,9 @@ namespace :rubber do
     sudo "gem #{cmd} $CAPISTRANO:VAR$ --no-rdoc --no-ri", opts do |ch, str, data|
       ch[:data] ||= ""
       ch[:data] << data
-      if data =~ />\s*$/
+      if data =~ /(>|\[Yn\])\s*$/
         logger.info data
-        logger.info "The gem command is asking for a number:"
+        logger.info "The gem command is asking for a response:"
         choice = STDIN.gets
         ch.send_data(choice)
       else
