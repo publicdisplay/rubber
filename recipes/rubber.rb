@@ -22,7 +22,8 @@ namespace :rubber do
       alias :required_task :task
       def task(name, options={}, &block)
         required_task(name, options) do
-          if find_servers_for_task(current_task).empty?
+          if find_servers_for_task(current_task).empty? &&
+              !current_task.options.empty?
             logger.info "No servers for task #{name}, skipping"
             next
           end
