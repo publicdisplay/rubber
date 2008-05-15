@@ -598,7 +598,8 @@ namespace :rubber do
   end
   def top.task(name, options={}, &block)
     top.required_task(name, options) do
-      if find_servers_for_task(current_task).empty?
+      if find_servers_for_task(current_task).empty? &&
+          !current_task.options.empty?
         logger.info "No servers for task #{name}, skipping"
         next
       end
