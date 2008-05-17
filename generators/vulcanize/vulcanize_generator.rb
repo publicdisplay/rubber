@@ -24,7 +24,7 @@ class VulcanizeGenerator < Rails::Generator::NamedBase
     end
     
     Find.find(sp) do |f|
-      Find.prune if File.basename(f) =~ /^(CVS|\.svn)$/
+      Find.prune if File.basename(f) =~ /(^(CVS|\.svn)$)|~$/
       Find.prune if f == templ_file
       rel = f.gsub(/#{source_root}\//, '')
       dest_rel = "config/" + rel.gsub(/#{name}\//, '')

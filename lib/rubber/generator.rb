@@ -30,7 +30,7 @@ module Rubber
         pat = Regexp.new(file_pattern) if file_pattern
 
         Find.find(*config_dirs) do |f|
-          Find.prune if f =~ /\/(CVS|\.svn)\//
+          Find.prune if f =~ /\/(CVS|\.svn)\/|~$/
           if File.file?(f) && (! pat || pat.match(f))
             LOGGER.info{"Transforming #{f}"}
             begin
