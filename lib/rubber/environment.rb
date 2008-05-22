@@ -72,11 +72,11 @@ module Rubber
           @cfg = cfg
           @roles = roles
           @host = host
-        @full_host = host + "." + self['domain'] rescue nil
+          @full_host = host + "." + self['domain'] rescue nil
         end
 
         # get the environment value for the given key
-        # if combine is true, value are cmobined for role/host overrides
+        # if combine is true, value are combined for role/host overrides
         # if combine is false, host overrides roles overrides global
         def get(name, combine=false, expand=false)
           if combine
