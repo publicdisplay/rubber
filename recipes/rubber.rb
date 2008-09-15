@@ -270,58 +270,64 @@ namespace :rubber do
     # For each group that does already exist in ec2
     response = ec2.describe_security_groups()
     response.securityGroupInfo.item.each do |item|
-      if group_keys.delete(item.groupName)
-        # sync rules
-        logger.debug "Security Group already in ec2, syncing rules: #{item.groupName}"
-        group = groups[item.groupName]
-        rules = group['rules'].clone
-        item.ipPermissions.item.each do |rule|
-          rule_maps = []
-          rule_map = {'ip_protocol' => rule.ipProtocol, 'from_port' => rule.fromPort.to_i, 'to_port' => rule.toPort.to_i}
-          # Collect the group and ipRange rules
-          rule.groups.item.each do |rule_group|
-            rule_maps << rule_map.merge('source_security_group_name' => rule_group.groupName, 'source_security_group_owner_id' => rule_group.userId)
-          end if rule.groups
-          rule.ipRanges.item.each do |ip|
-            rule_maps << rule_map.merge('cidr_ip' => ip.cidrIp)
-          end if rule.ipRanges
-          # For each rule, if it exists, do nothing, otherwise remove it as its no longer defined locally
-          rule_maps.each do |rule_map|
-            if rules.delete(rule_map)
-              # rules match, don't need to do anything
-              # logger.debug "Rule in sync: #{rule_map.inspect}"
-            else
-              # rules don't match, remove them from ec2 and re-add below
-              logger.debug "Removing out of sync rule: #{rule_map.inspect}"
-              rule = Rubber::Util::symbolize_keys(rule_map.merge(:group_name => item.groupName))
-              ec2.revoke_security_group_ingress(rule)
+      if item.groupName != 'default'
+        if group_keys.delete(item.groupName)
+          # sync rules
+          logger.debug "Security Group already in ec2, syncing rules: #{item.groupName}"
+          group = groups[item.groupName]
+          rules = group['rules'].clone
+          item.ipPermissions.item.each do |rule|
+            rule_maps = []
+            rule_map = {'ip_protocol' => rule.ipProtocol, 'from_port' => rule.fromPort.to_i, 'to_port' => rule.toPort.to_i}
+            # Collect the group and ipRange rules
+            rule.groups.item.each do |rule_group|
+              rule_maps << rule_map.merge('source_security_group_name' => rule_group.groupName, 'source_security_group_owner_id' => rule_group.userId)
+            end if rule.groups
+            rule.ipRanges.item.each do |ip|
+              rule_maps << rule_map.merge('cidr_ip' => ip.cidrIp)
+            end if rule.ipRanges
+            # For each rule, if it exists, do nothing, otherwise remove it as its no longer defined locally
+            rule_maps.each do |rule_map|
+              if rules.delete(rule_map)
+                # rules match, don't need to do anything
+                # logger.debug "Rule in sync: #{rule_map.inspect}"
+              else
+                # rules don't match, remove them from ec2 and re-add below
+                logger.debug "Removing out of sync rule: #{rule_map.inspect}"
+                rule = Rubber::Util::symbolize_keys(rule_map.merge(:group_name => item.groupName))
+                ec2.revoke_security_group_ingress(rule)
+              end
             end
+          end if item.ipPermissions
+          rules.each do |rule|
+            # create non-existing rules
+            logger.debug "Mising rule, creating: #{rule.inspect}"
+            rule = Rubber::Util::symbolize_keys(rule.merge(:group_name => item.groupName))
+            ec2.authorize_security_group_ingress(rule)
           end
-        end if item.ipPermissions
-        rules.each do |rule|
-          # create non-existing rules
-          logger.debug "Mising rule, creating: #{rule.inspect}"
-          rule = Rubber::Util::symbolize_keys(rule.merge(:group_name => item.groupName))
-          ec2.authorize_security_group_ingress(rule)
+        else
+          # delete group
+          logger.debug "Removing security group: #{item.groupName}"
+          ec2.delete_security_group(:group_name => item.groupName)
         end
       else
-        # delete group
-        logger.debug "Removing security group: #{item.groupName}"
-        ec2.delete_security_group(:group_name => item.groupName)
+        puts "Not changing security groups for 'default'"
       end
     end
     
     # For each group that didnt already exist in ec2
     group_keys.each do |key|
-      group = groups[key]
-      logger.debug "Creating new security group: #{key}"
-      # create each group
-      ec2.create_security_group(:group_name => key, :group_description => group['description'])
-      # create rules for group
-      group['rules'].each do |rule|
-        logger.debug "Creating new rule: #{rule.inspect}"
-        rule = Rubber::Util::symbolize_keys(rule.merge(:group_name => key))
-        ec2.authorize_security_group_ingress(rule)
+      if key != 'default'
+        group = groups[key]
+        logger.debug "Creating new security group: #{key}"
+        # create each group
+        ec2.create_security_group(:group_name => key, :group_description => group['description'])
+        # create rules for group
+        group['rules'].each do |rule|
+          logger.debug "Creating new rule: #{rule.inspect}"
+          rule = Rubber::Util::symbolize_keys(rule.merge(:group_name => key))
+          ec2.authorize_security_group_ingress(rule)
+        end
       end
     end
   end
@@ -657,7 +663,8 @@ namespace :rubber do
   end
 
   def run_config(options={})
-    path = options.delete(:deploy_path) || current_path
+    #path = options.delete(:deploy_path) || current_path
+    path = options.delete(:deploy_path) || release_path
     extra_env = options.keys.inject("") {|all, k|  "#{all} #{k}=\"#{options[k]}\""}
 
     # Need to do this otherwise it forces user to checkin instance file between create and bootstrap
