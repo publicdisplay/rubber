@@ -743,7 +743,7 @@ namespace :rubber do
   end
 
   def run_config(options={})
-    path = options.delete(:deploy_path) || current_path
+    path = options.delete(:deploy_path) || latest_release
     extra_env = options.keys.inject("") {|all, k|  "#{all} #{k}=\"#{options[k]}\""}
 
     # Need to do this so we can work with staging instances without having to
