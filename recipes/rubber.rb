@@ -346,6 +346,8 @@ namespace :rubber do
           rule = Rubber::Util::symbolize_keys(rule.merge(:group_name => item.groupName))
           ec2.authorize_security_group_ingress(rule)
         end
+      elsif item.groupName == 'default'
+        logger.debug "Not changing security group: 'default'"
       else
         # when using auto groups, get prompted too much to delete when
         # switching between production/staging since the hosts aren't shared
@@ -363,7 +365,7 @@ namespace :rubber do
       group = groups[key]
       logger.debug "Creating new security group: #{key}"
       # create each group
-      ec2.create_security_group(:group_name => key, :group_description => group['description'])
+      ec2.create_security_group(:group_name => key, :group_description => group['description']) unless key == 'default'
       # create rules for group
       group['rules'].each do |rule|
         logger.debug "Creating new rule: #{rule.inspect}"
